@@ -18,5 +18,10 @@ public enum Verb
     /// <summary>
     /// The pack verb packages a script or mod into a format the game understands.
     /// </summary>
-    Pack
+    Pack,
+
+    /// <summary>
+    /// The unpack verb deminifies a script, into a format humans can understand
+    /// </summary>
+    Unpack
 }

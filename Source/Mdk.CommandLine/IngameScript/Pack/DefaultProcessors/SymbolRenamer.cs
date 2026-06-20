@@ -59,8 +59,8 @@ public partial class SymbolRenamer : IDocumentProcessor
                 "[symbolmap]\n" +
                 string.Join("\n", renamer.NameMap.Select(kvp => $"{kvp.Value}={kvp.Key}")));
         }
-        // if (!context.Parameters.PackVerb.NoSymbolMap)
-        //     context.FileSystem.Write("symbol.map", string.Join("\n", idMap.Select(kvp => $"{kvp.Value}={kvp.Key}")));
+        else if (!context.Parameters.PackVerb.NoSymbolMap)
+            await context.FileSystem.WriteAsync("symbol.map", string.Join("\n", idMap.Select(kvp => $"{kvp.Value}={kvp.Key}")));
         return document;
     }
 

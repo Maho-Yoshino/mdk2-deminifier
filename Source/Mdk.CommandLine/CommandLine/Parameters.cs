@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using Mdk.CommandLine.IngameScript.Pack;
 using Mdk.CommandLine.Shared.Api;
 using Mdk.CommandLine.Utility;
@@ -27,6 +28,11 @@ public class Parameters : TracksPropertyChanges, IParameters
     ///     Detailed parameters for the pack verb.
     /// </summary>
     public PackVerbParameters PackVerb { get; } = new();
+
+    /// <summary>
+    ///     Detailed parameters for the deminify verb.
+    /// </summary>
+    public UnpackVerbParameters UnpackVerb { get; } = new();
 
     /// <inheritdoc />
     public Verb Verb
@@ -58,6 +64,8 @@ public class Parameters : TracksPropertyChanges, IParameters
 
     IParameters.IHelpVerbParameters IParameters.HelpVerb => HelpVerb;
     IParameters.IPackVerbParameters IParameters.PackVerb => PackVerb;
+    IParameters.IUnpackVerbParameters IParameters.UnpackVerb => UnpackVerb;
+
 
     /// <summary>
     ///     Enumerates any config files that were loaded when using the <see cref="ParseAndLoadConfigs" /> method.
@@ -75,8 +83,11 @@ public class Parameters : TracksPropertyChanges, IParameters
         projectFile = null;
         switch (Verb)
         {
-            case Verb.Pack:
+            case Verb.Pack: 
                 projectFile = PackVerb.ProjectFile;
+                break;
+            case Verb.Unpack:
+                projectFile = UnpackVerb.ProjectFile;
                 break;
             default:
                 return false;
@@ -232,6 +243,25 @@ public class Parameters : TracksPropertyChanges, IParameters
                     PackVerb.ProjectFile = arg;
                     break;
 
+                case Verb.Unpack:
+                    if (matches("-symbolmap"))
+                    {
+                        if (!queue.TryDequeue(out var SymbolMap))
+                            throw new CommandLineException(-1, "No symbolmap path specified.");
+                        UnpackVerb.SymbolMap = SymbolMap;
+                        continue;
+                    }
+                    if (matches("-whitespace"))
+                    {
+                        UnpackVerb.AddWhitespace = true;
+                    }
+                    if (arg.StartsWith('-'))
+                        throw new CommandLineException(-1, $"Unknown option '{arg}' for verb '{verb}'.");
+                    if (UnpackVerb.ProjectFile != null)
+                        throw new CommandLineException(-1, "Only one project file can be specified.");
+                    UnpackVerb.ProjectFile = arg;
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -316,6 +346,10 @@ public class Parameters : TracksPropertyChanges, IParameters
                 }
             }
         }
+        if (section.HasKey("no-symmap") && (overrideExisting || !IsSet(PackVerb, nameof(PackVerb.GameBin))))
+        {
+            PackVerb.NoSymbolMap = true;
+        }
 
         // Branch-scoped output: [mdk-branch:<branchname>] sections carry a 'pattern' key naming the output
         // folder to use when packing on that git branch, plus optional 'watermark'/'watermarktext' keys to
@@ -387,12 +421,17 @@ public class Parameters : TracksPropertyChanges, IParameters
                     case Verb.Pack:
                         ShowHelpAboutPack(console);
                         break;
+                    case Verb.Unpack:
+                        ShowHelpAboutUnpack(console);
+                        break;
                     default:
                         ShowGeneralHelp(console);
                         break;
                 }
                 break;
             case Verb.Pack:
+                break;
+            case Verb.Unpack:
                 break;
             default:
                 ShowGeneralHelp(console);
@@ -438,12 +477,24 @@ public class Parameters : TracksPropertyChanges, IParameters
             .Print("                        - DoNothing: Disables all Hub interaction")
             .Print("  -log <file>          Log to the specified file.")
             .Print("  -trace               Enable trace logging.")
+            .Print("  -no-symmap           Doesn't generate a symbol map if set")
             .Print()
             .Print("Options (for mod projects):")
             .Print("  To be determined: Mod packing is pending implementation.")
             .Print()
             .Print("Example:")
             .Print("  mdk pack /path/to/project.csproj -minifier full -interactive OpenHub");
+    
+    void ShowHelpAboutUnpack(IConsole console) =>
+        console.Print("Usage: mdk unpack <project-file> [options]")
+            .Print("Unpacks a script or mod project")
+            .Print()
+            .Print("Options:")
+            .Print("  -symbolmap <path/to/symbol.map>   When provided, it will try to deminify using the symbol map")
+            .Print("  -whitespace       Adds whitespace between methods and at the start of lines")
+            .Print()
+            .Print("Example:")
+            .Print("  mdk deminify /path/to/project.csproj -symbolmap /path/to/symbol.map");
 
     void ShowGeneralHelp(IConsole console) =>
         console.Print("Usage: mdk [options] <verb> [verb-options]")
@@ -459,6 +510,7 @@ public class Parameters : TracksPropertyChanges, IParameters
             .Print("Verbs:")
             .Print("  help [verb]  Display help for a verb.")
             .Print("  pack         Pack a project into a single script.")
+            .Print("  deminify     Deminify a project using a symbol map.")
             .Print("  version      Display the version of MDK.")
             .Print()
             .Print("Use 'mdk help <verb>' for more information on a verb.");
@@ -491,6 +543,11 @@ public class Parameters : TracksPropertyChanges, IParameters
                     .TraceIf(PackVerb.Macros.Count > 0, $"> Pack.Macros: {string.Join(", ", PackVerb.Macros)}")
                     .TraceIf(PackVerb.Configuration != "Release", $"> Pack.Configuration: {PackVerb.Configuration}");
                 break;
+            case Verb.Unpack:
+                console.Trace($"> Unpack.ProjectFile: {UnpackVerb.ProjectFile}")
+                    .TraceIf(UnpackVerb.SymbolMap != null, $"> Unpack.SymbolMap: {UnpackVerb.SymbolMap}")
+                    .Trace($"Whitespace: {UnpackVerb.AddWhitespace}");
+                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -522,6 +579,7 @@ public class Parameters : TracksPropertyChanges, IParameters
         string? _output;
         string? _projectFile;
         bool _dryRun;
+        bool _noSymbolMap;
         MinifierExtraOptions _minifierExtraOptions = MinifierExtraOptions.None;
 
         /// <inheritdoc cref="IParameters.IPackVerbParameters.Ignores" />
@@ -586,6 +644,13 @@ public class Parameters : TracksPropertyChanges, IParameters
         }
 
         /// <inheritdoc />
+        public bool NoSymbolMap
+        {
+            get => _noSymbolMap;
+            set => SetField(ref _noSymbolMap, value);
+        }
+
+        /// <inheritdoc />
         IReadOnlyList<string> IParameters.IPackVerbParameters.Ignores => Ignores;
 
         /// <inheritdoc />
@@ -596,6 +661,35 @@ public class Parameters : TracksPropertyChanges, IParameters
 
         /// <inheritdoc />
         IReadOnlyDictionary<string, BranchOutput> IParameters.IPackVerbParameters.BranchOutputs => BranchOutputs;
+
+    }
+
+    public class UnpackVerbParameters: TracksPropertyChanges, IParameters.IUnpackVerbParameters
+    {
+        string? _symbolMapPath;
+        string? _projectFilePath;
+        bool _addWhitespace;
+
+        /// <inheritdoc />
+        public string? SymbolMap
+        {
+            get => _symbolMapPath;
+            set => SetField(ref _symbolMapPath, value);
+        }
+
+        /// <inheritdoc />
+        public string? ProjectFile
+        {
+            get => _projectFilePath;
+            set => SetField(ref _projectFilePath, value);
+        }
+
+        /// <inheritdoc />
+        public bool AddWhitespace
+        {
+            get => _addWhitespace;
+            set => SetField(ref _addWhitespace, value);
+        }
     }
 }
 

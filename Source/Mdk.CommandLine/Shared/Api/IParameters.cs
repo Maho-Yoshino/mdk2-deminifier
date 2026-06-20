@@ -39,6 +39,12 @@ public interface IParameters
     /// </summary>
     IPackVerbParameters PackVerb { get; }
 
+
+    /// <summary>
+    ///     Detailed parameters for the unpack verb.
+    /// </summary>
+    IUnpackVerbParameters UnpackVerb { get; }
+
     /// <summary>
     ///     Parameters for the help verb.
     /// </summary>
@@ -94,6 +100,11 @@ public interface IParameters
         string? Configuration { get; }
 
         /// <summary>
+        ///     Controls whether to generate a symbol map on the <c>Full</c> minifier setting
+        /// </summary>
+        bool NoSymbolMap { get; }
+
+        /// <summary>
         ///     A list of paths to ignore when packing, in the form of a glob pattern (e.g. "bin/**/*").
         /// </summary>
         IReadOnlyList<string> Ignores { get; }
@@ -124,5 +135,26 @@ public interface IParameters
         ///     entry pack to the project name as usual.
         /// </remarks>
         IReadOnlyDictionary<string, BranchOutput> BranchOutputs { get; }
+    }
+
+    /// <summary>
+    ///     Parameters for the deminify verb
+    /// </summary>
+    public interface IUnpackVerbParameters
+    {
+        /// <summary>
+        ///     The project file to pack.
+        /// </summary>
+        string? ProjectFile { get; }
+        
+        /// <summary>
+        ///     The symbol map file path
+        /// </summary>
+        string? SymbolMap { get; }
+
+        /// <summary>
+        ///     Whether to add additional whitespace into the file 
+        /// </summary>
+        bool AddWhitespace { get; }
     }
 }
