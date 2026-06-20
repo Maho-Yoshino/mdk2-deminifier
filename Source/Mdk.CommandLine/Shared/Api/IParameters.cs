@@ -143,7 +143,7 @@ public interface IParameters
     public interface IUnpackVerbParameters
     {
         /// <summary>
-        ///     The project file to pack.
+        ///     The project file to unpack into.
         /// </summary>
         string? ProjectFile { get; }
         

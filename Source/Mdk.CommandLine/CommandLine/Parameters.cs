@@ -488,13 +488,17 @@ public class Parameters : TracksPropertyChanges, IParameters
     void ShowHelpAboutUnpack(IConsole console) =>
         console.Print("Usage: mdk unpack <project-file> [options]")
             .Print("Unpacks a script or mod project")
+            .Print("WARNING: Overwrites the Project.cs file")
             .Print()
             .Print("Options:")
-            .Print("  -symbolmap <path/to/symbol.map>   When provided, it will try to deminify using the symbol map")
-            .Print("  -whitespace       Adds whitespace between methods and at the start of lines")
+            .Print("  -symbolmap <path/to/symbol.map>   When provided, it will try to deminify using the symbol map.")
+            .Print("                                    If not provided, it will look for a \"symbol.map\" in the root of the project directory")
+            .Print("  -file <path/to/minified/file.cs>  The file to unpack")
+            .Print("  -whitespace                       Adds extra whitespace between methods and at the start of lines")
+            .Print("  -f                                Forces the operation (doesn't ask if you want to overwrite)")
             .Print()
             .Print("Example:")
-            .Print("  mdk deminify /path/to/project.csproj -symbolmap /path/to/symbol.map");
+            .Print("  mdk unpack /path/to/project.csproj -file /path/to/minified/file.cs");
 
     void ShowGeneralHelp(IConsole console) =>
         console.Print("Usage: mdk [options] <verb> [verb-options]")
@@ -510,7 +514,7 @@ public class Parameters : TracksPropertyChanges, IParameters
             .Print("Verbs:")
             .Print("  help [verb]  Display help for a verb.")
             .Print("  pack         Pack a project into a single script.")
-            .Print("  deminify     Deminify a project using a symbol map.")
+            .Print("  unpack       Deminify a project.")
             .Print("  version      Display the version of MDK.")
             .Print()
             .Print("Use 'mdk help <verb>' for more information on a verb.");
