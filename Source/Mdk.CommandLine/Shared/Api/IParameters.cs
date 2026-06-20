@@ -153,8 +153,18 @@ public interface IParameters
         string? SymbolMap { get; }
 
         /// <summary>
+        ///     The minified file's path
+        /// </summary>
+        string? MinifiedFile { get; }
+
+        /// <summary>
         ///     Whether to add additional whitespace into the file 
         /// </summary>
         bool AddWhitespace { get; }
+
+        /// <summary>
+        ///     Whether to overwrite without asking
+        /// </summary>
+        bool Force { get; }
     }
 }

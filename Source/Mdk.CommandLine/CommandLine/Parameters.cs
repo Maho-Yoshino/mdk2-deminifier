@@ -672,7 +672,9 @@ public class Parameters : TracksPropertyChanges, IParameters
     {
         string? _symbolMapPath;
         string? _projectFilePath;
+        string? _minifiedFilePath;
         bool _addWhitespace;
+        bool _force;
 
         /// <inheritdoc />
         public string? SymbolMap
@@ -687,12 +689,25 @@ public class Parameters : TracksPropertyChanges, IParameters
             get => _projectFilePath;
             set => SetField(ref _projectFilePath, value);
         }
+        
+        /// <inheritdoc />
+        public string? MinifiedFile
+        {
+            get => _minifiedFilePath;
+            set => SetField(ref _minifiedFilePath, value);
+        }
 
         /// <inheritdoc />
         public bool AddWhitespace
         {
             get => _addWhitespace;
             set => SetField(ref _addWhitespace, value);
+        }
+        /// <inheritdoc />
+        public bool Force
+        {
+            get => _force;
+            set => SetField(ref _force, value);
         }
     }
 }
